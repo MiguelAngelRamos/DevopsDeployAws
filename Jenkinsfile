@@ -29,11 +29,12 @@ node {
         def jarName = env.JAR_NAME
 
         withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_CREDENTIAL', keyFileVariable: 'identity')]) {
-            sh """
-                scp -i $identity target/${jarName} ${ec2User}@${ec2IP}:/home/${ec2User}/
-                ssh -i $identity ${ec2User}@${ec2IP} 'pkill -f ${jarName} || echo "No corriendo"'
-                ssh -i $identity ${ec2User}@${ec2IP} 'nohup java -jar /home/${ec2User}/${jarName} > app.log 2>&1 &'
-            """
+            sh '''
+                scp -o StrictHostKeyChecking=no -i $identity target/${jarName} ${ec2User}@${ec2IP}:/home/${ec2User}/
+                ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pkill -f ${jarName} || echo "No corriendo"'
+                ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'nohup java -jar /home/${ec2User}/${jarName} > app.log 2>&1 &'
+            '''
         }
     }
+
 }
