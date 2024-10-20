@@ -9,11 +9,13 @@ node {
     stage('Construcción') {
         myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
             sh 'mvn clean package'
+            // Verificar el contenido del directorio target en el contenedor
+            sh 'ls -l target/'
         }
 
         // Obtener el ID del contenedor y copiar el JAR al host
         def containerId = sh(script: 'docker ps -lq', returnStdout: true).trim()
-        sh "docker cp ${containerId}:/usr/src/mymaven/target/${env.JAR_NAME} ./target/${env.JAR_NAME}"
+        sh "docker cp ${containerId}:/target/${env.JAR_NAME} ./target/${env.JAR_NAME}"
     }
 
     stage('Archivar Artefactos') {
