@@ -49,21 +49,23 @@ node {
             def scpCommand = "scp -o StrictHostKeyChecking=no -i $identity target/${jarName} ${ec2User}@${ec2IP}:/home/${ec2User}/"
             sh scpCommand
 
+            echo "Esperando 5 segundos para asegurar la transferencia..."
+            sleep(5)
+
             echo "Verificando la presencia del archivo JAR en la instancia EC2..."
             def sshCheckFileCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'ls /home/${ec2User}/${jarName} || echo \"Archivo no encontrado\"'"
             sh sshCheckFileCommand
-
-            echo "Verificando si Java está instalado..."
-            def sshCheckJavaCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'java -version || echo \"Java no disponible\"'"
-            sh sshCheckJavaCommand
 
             echo "Deteniendo la instancia previa de la aplicación (si existe)..."
             def sshStopCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pkill -f ${jarName} || echo \"No corriendo\"'"
             sh sshStopCommand
 
-            echo "Iniciando la aplicación..."
+            echo "Iniciando la aplicación en segundo plano..."
             def sshStartCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'nohup java -jar /home/${ec2User}/${jarName} > /home/${ec2User}/app.log 2>&1 &'"
             sh sshStartCommand
+
+            echo "Esperando 5 segundos para que la aplicación arranque..."
+            sleep(5)
 
             echo "Verificando el estado de la aplicación..."
             def sshCheckAppCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pgrep -f ${jarName} && echo \"Aplicación en ejecución\" || echo \"Aplicación no en ejecución\"'"
