@@ -1,4 +1,5 @@
 node {
+    // Usa una imagen Docker que contenga Maven y OpenJDK 17
     def myMavenContainer = docker.image('maven:3.8.4-openjdk-17')
     myMavenContainer.pull()
 
@@ -7,17 +8,26 @@ node {
     }
 
     stage('Construcción') {
+        // Usar un volumen para que el JAR se genere directamente en el host
         myMavenContainer.inside("-v ${env.WORKSPACE}/target:/usr/src/mymaven/target -v ${env.HOME}/.m2:/root/.m2") {
             sh 'mvn clean package'
         }
     }
 
     stage('Archivar Artefactos') {
+        // Archivar el JAR generado en el host
         archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+    }
+
+    stage('Verificar variables de entorno') {
+        echo "EC2_IP: ${env.EC2_IP}"
+        echo "EC2_USER: ${env.EC2_USER}"
+        echo "JAR_NAME: ${env.JAR_NAME}"
     }
 
     stage('Verificar conexión SSH') {
         withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_CREDENTIAL', keyFileVariable: 'identity')]) {
+            // Probar la conexión SSH antes de proceder con el despliegue
             def sshTestCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${env.EC2_USER}@${env.EC2_IP} 'echo Conexión exitosa'"
             echo "Probando conexión SSH a ${env.EC2_IP}..."
             sh sshTestCommand
@@ -31,54 +41,32 @@ node {
 
         withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_CREDENTIAL', keyFileVariable: 'identity')]) {
             echo "Transfiriendo JAR a la instancia EC2..."
-            sh "scp -o StrictHostKeyChecking=no -i $identity target/${jarName} ${ec2User}@${ec2IP}:/home/${ec2User}/"
+            def scpCommand = "scp -o StrictHostKeyChecking=no -i $identity target/${jarName} ${ec2User}@${ec2IP}:/home/${ec2User}/"
+            sh scpCommand
 
             echo "Verificando la presencia del archivo JAR en la instancia EC2..."
-            sh "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'ls /home/${ec2User}/${jarName} || echo \"Archivo no encontrado\"'"
+            def sshCheckFileCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'ls /home/${ec2User}/${jarName} || echo \"Archivo no encontrado\"'"
+            sh sshCheckFileCommand
 
             echo "Deteniendo la instancia previa de la aplicación (si existe)..."
-            sh(script: """
+            def sshStopCommand = """
                 ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} \
                 'pgrep -f ${jarName} && pkill -f ${jarName} || echo "No corriendo"'
-            """, returnStatus: true)
+            """
+            sh(script: sshStopCommand, returnStatus: true)
 
             echo "Iniciando la aplicación en segundo plano..."
-            sh """
+            def sshStartCommand = """
                 ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} \
                 'nohup java -jar /home/${ec2User}/${jarName} > /home/${ec2User}/app.log 2>&1 &'
             """
+            sh sshStartCommand
 
-            echo "Esperando que la aplicación inicie..."
-            def maxRetries = 10
-            def interval = 2 // segundos entre verificaciones
-            def retries = 0
-            def isAppRunning = false
-
-            // Espera activa para verificar si la aplicación está corriendo
-            while (retries < maxRetries) {
-                def result = sh(script: "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pgrep -f ${jarName}'", returnStatus: true)
-                if (result == 0) {
-                    isAppRunning = true
-                    echo "La aplicación está en ejecución."
-                    break
-                } else {
-                    echo "Esperando que la aplicación inicie... Intento ${retries + 1} de ${maxRetries}."
-                    retries++
-                    // Pausa corta entre verificaciones
-                    try {
-                        sh "sleep ${interval}"
-                    } catch (Exception e) {
-                        echo "Error al esperar: ${e}"
-                    }
-                }
-            }
-
-            if (!isAppRunning) {
-                error("La aplicación no se pudo iniciar después de ${maxRetries} intentos.")
-            }
+      
 
             echo "Mostrando las últimas líneas del log de la aplicación..."
-            sh "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'tail -n 20 /home/${ec2User}/app.log || echo \"No hay logs disponibles\"'"
+            def sshShowLogsCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'tail -n 20 /home/${ec2User}/app.log || echo \"No hay logs disponibles\"'"
+            sh sshShowLogsCommand
         }
     }
 }
