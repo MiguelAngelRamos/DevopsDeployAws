@@ -15,6 +15,11 @@ node {
         sh 'docker cp $(docker ps -alq):/usr/src/mymaven/target/${env.JAR_NAME} ./target/${env.JAR_NAME}'
     }
 
+    stage('Test') {
+        myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
+            sh 'mvn test'
+        }
+    }
 
     stage('Archivar Artefactos') {
         archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
