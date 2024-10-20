@@ -18,26 +18,6 @@ node {
         }
     }
 
-    stage('Sonar Scanner') {
-        script {
-            def sonarqubeScannerHome = tool name: 'sonar', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
-            withCredentials([string(credentialsId: 'sonar', variable: 'sonarLogin')]) {
-                sh """
-                ${sonarqubeScannerHome}/bin/sonar-scanner \
-                -e \
-                -Dsonar.host.url=http://SonarQube:9000 \
-                -Dsonar.login=${sonarLogin} \
-                -Dsonar.projectName=devops-maven-project \
-                -Dsonar.projectVersion=${env.BUILD_NUMBER} \
-                -Dsonar.projectKey=devops-maven-key \
-                -Dsonar.sources=src/main/java \
-                -Dsonar.tests=src/test/java \
-                -Dsonar.language=java \
-                -Dsonar.java.binaries=target/classes
-                """
-            }
-        }
-    }
 
     stage('Archivar Artefactos') {
         archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
