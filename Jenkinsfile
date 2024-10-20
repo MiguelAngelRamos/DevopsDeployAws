@@ -25,6 +25,11 @@ node {
         echo "JAR_NAME: ${env.JAR_NAME}"
     }
 
+    stage('Verificar JAR generado') {
+        // Listar el contenido del directorio target para confirmar la presencia del JAR
+        sh 'ls -l target/'
+    }
+
     stage('Desplegar en EC2') {
         def ec2IP = env.EC2_IP
         def ec2User = env.EC2_USER
