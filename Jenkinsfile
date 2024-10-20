@@ -62,7 +62,27 @@ node {
             """
             sh sshStartCommand
 
-      
+            echo "Verificando el estado de la aplicación..."
+            def maxRetries = 5
+            def delay = 5 // segundos entre reintentos
+            def retries = 0
+            def isAppRunning = false
+
+            while (retries < maxRetries && !isAppRunning) {
+                def result = sh(script: "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pgrep -f ${jarName}'", returnStatus: true)
+                if (result == 0) {
+                    isAppRunning = true
+                    echo "La aplicación está en ejecución."
+                } else {
+                    echo "La aplicación no está en ejecución, reintentando en ${delay} segundos..."
+                    sleep(delay)
+                    retries++
+                }
+            }
+
+            if (!isAppRunning) {
+                error("La aplicación no se pudo iniciar después de ${maxRetries} reintentos.")
+            }
 
             echo "Mostrando las últimas líneas del log de la aplicación..."
             def sshShowLogsCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'tail -n 20 /home/${ec2User}/app.log || echo \"No hay logs disponibles\"'"
