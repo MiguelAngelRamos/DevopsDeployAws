@@ -30,6 +30,15 @@ node {
         sh 'ls -l target/'
     }
 
+    stage('Verificar conexión SSH') {
+        withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_CREDENTIAL', keyFileVariable: 'identity')]) {
+            // Probar la conexión SSH antes de proceder con el despliegue
+            def sshTestCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${env.EC2_USER}@${env.EC2_IP} 'echo Conexión exitosa'"
+            echo "Probando conexión SSH a ${env.EC2_IP}..."
+            sh sshTestCommand
+        }
+    }
+
     stage('Desplegar en EC2') {
         def ec2IP = env.EC2_IP
         def ec2User = env.EC2_USER
@@ -42,11 +51,20 @@ node {
             // Comandos de despliegue
             def scpCommand = "scp -o StrictHostKeyChecking=no -i $identity target/${jarName} ${ec2User}@${ec2IP}:/home/${ec2User}/"
             def sshStopCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pkill -f ${jarName} || echo \"No corriendo\"'"
+            def sshCheckFileCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'ls /home/${ec2User}/${jarName} || echo \"Archivo no encontrado\"'"
             def sshStartCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'nohup java -jar /home/${ec2User}/${jarName} > app.log 2>&1 &'"
 
             // Ejecutar comandos
+            echo "Transfiriendo JAR a la instancia EC2..."
             sh scpCommand
+
+            echo "Verificando la presencia del archivo JAR en la instancia EC2..."
+            sh sshCheckFileCommand
+
+            echo "Deteniendo la instancia previa de la aplicación (si existe)..."
             sh sshStopCommand
+
+            echo "Iniciando la aplicación..."
             sh sshStartCommand
         }
     }
