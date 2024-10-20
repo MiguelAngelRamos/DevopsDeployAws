@@ -1,4 +1,5 @@
 node {
+    // Usa una imagen Docker que contenga Maven y OpenJDK 17
     def myMavenContainer = docker.image('maven:3.8.4-openjdk-17')
     myMavenContainer.pull()
 
@@ -7,18 +8,14 @@ node {
     }
 
     stage('Construcción') {
-        myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
+        // Usar un volumen para que el JAR se genere directamente en el host
+        myMavenContainer.inside("-v ${env.WORKSPACE}/target:/usr/src/mymaven/target -v ${env.HOME}/.m2:/root/.m2") {
             sh 'mvn clean package'
-            // Verificar el contenido del directorio target en el contenedor
-            sh 'ls -l target/'
         }
-
-        // Obtener el ID del contenedor y copiar el JAR al host
-        def containerId = sh(script: 'docker ps -lq', returnStdout: true).trim()
-        sh "docker cp ${containerId}:/target/${env.JAR_NAME} ./target/${env.JAR_NAME}"
     }
 
     stage('Archivar Artefactos') {
+        // Archivar el JAR generado en el host
         archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
     }
 
