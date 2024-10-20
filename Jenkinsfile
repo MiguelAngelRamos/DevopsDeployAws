@@ -45,27 +45,33 @@ node {
         def jarName = env.JAR_NAME
 
         withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_CREDENTIAL', keyFileVariable: 'identity')]) {
-            // Imprimir el contenido de la variable 'identity' (sin revelar la clave privada)
-            echo "Identity file path: ${identity}"
-
-            // Comandos de despliegue
-            def scpCommand = "scp -o StrictHostKeyChecking=no -i $identity target/${jarName} ${ec2User}@${ec2IP}:/home/${ec2User}/"
-            def sshStopCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pkill -f ${jarName} || echo \"No corriendo\"'"
-            def sshCheckFileCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'ls /home/${ec2User}/${jarName} || echo \"Archivo no encontrado\"'"
-            def sshStartCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'nohup java -jar /home/${ec2User}/${jarName} > app.log 2>&1 &'"
-
-            // Ejecutar comandos
             echo "Transfiriendo JAR a la instancia EC2..."
+            def scpCommand = "scp -o StrictHostKeyChecking=no -i $identity target/${jarName} ${ec2User}@${ec2IP}:/home/${ec2User}/"
             sh scpCommand
 
             echo "Verificando la presencia del archivo JAR en la instancia EC2..."
+            def sshCheckFileCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'ls /home/${ec2User}/${jarName} || echo \"Archivo no encontrado\"'"
             sh sshCheckFileCommand
 
+            echo "Verificando si Java está instalado..."
+            def sshCheckJavaCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'java -version || echo \"Java no disponible\"'"
+            sh sshCheckJavaCommand
+
             echo "Deteniendo la instancia previa de la aplicación (si existe)..."
+            def sshStopCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pkill -f ${jarName} || echo \"No corriendo\"'"
             sh sshStopCommand
 
             echo "Iniciando la aplicación..."
+            def sshStartCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'nohup java -jar /home/${ec2User}/${jarName} > /home/${ec2User}/app.log 2>&1 &'"
             sh sshStartCommand
+
+            echo "Verificando el estado de la aplicación..."
+            def sshCheckAppCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'pgrep -f ${jarName} && echo \"Aplicación en ejecución\" || echo \"Aplicación no en ejecución\"'"
+            sh sshCheckAppCommand
+
+            echo "Mostrando las últimas líneas del log de la aplicación..."
+            def sshShowLogsCommand = "ssh -o StrictHostKeyChecking=no -i $identity ${ec2User}@${ec2IP} 'tail -n 20 /home/${ec2User}/app.log || echo \"No hay logs disponibles\"'"
+            sh sshShowLogsCommand
         }
     }
 }
