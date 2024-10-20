@@ -10,12 +10,9 @@ node {
         myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
             sh 'mvn clean package'
         }
-    }
 
-    stage('Test') {
-        myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
-            sh 'mvn test'
-        }
+        // Copiar el JAR al host
+        sh 'docker cp $(docker ps -alq):/usr/src/mymaven/target/${env.JAR_NAME} ./target/${env.JAR_NAME}'
     }
 
 
@@ -49,5 +46,4 @@ node {
             sh sshStartCommand
         }
     }
-
 }
