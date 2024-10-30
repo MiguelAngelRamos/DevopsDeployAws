@@ -4,18 +4,19 @@ node {
     myMavenContainer.pull()
 
     stage('Preparación') {
+        // Clonar el repositorio desde GitHub
         git branch: 'main', url: 'https://github.com/mickinfo/DevopsTestMerge.git'
     }
 
     stage('Construcción') {
-        // Usar un volumen para que el JAR se genere directamente en el host
+        // Usar un volumen para construir el JAR en el host
         myMavenContainer.inside("-v ${env.WORKSPACE}/target:/usr/src/mymaven/target -v ${env.HOME}/.m2:/root/.m2") {
             sh 'mvn clean package'
         }
     }
 
     stage('Archivar Artefactos') {
-        // Archivar el JAR generado en el host
+        // Archivar el JAR generado en Jenkins
         archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
     }
 
@@ -37,13 +38,19 @@ node {
 
     stage('Desplegar en Nexus') {
         withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-            def isSnapshot = "${env.VERSION}".contains("SNAPSHOT")
-            def repoUrl = isSnapshot ? "http://172.23.0.3:8081/repository/mvn-snapshots/" : "http://172.23.0.3:8081/repository/mvn-releases/"
+            // Determina si es un snapshot o release
+            def isSnapshot = "${env.VERSION}"?.contains("SNAPSHOT") ?: "true" // Asume snapshot si no está definida la variable
+            def repoUrl = isSnapshot ? "http://172.23.0.3:8081/repository/maven-snapshots/" : "http://172.23.0.3:8081/repository/maven-releases/"
 
             myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
-                sh """
-                    mvn deploy -DaltDeploymentRepository=nexus::default::${repoUrl}
-                """
+                try {
+                    sh """
+                        mvn deploy -s /usr/share/maven/ref/settings-docker.xml \
+                            -DaltDeploymentRepository=nexus::default::${repoUrl} -X
+                    """
+                } catch (Exception e) {
+                    error("El despliegue falló. Verifica la conectividad y las credenciales: ${e.message}")
+                }
             }
         }
     }
