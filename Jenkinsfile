@@ -36,22 +36,16 @@ node {
         }
     }
 
-    stage('Desplegar en Nexus') {
-        withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-            // Determina si es un snapshot o release
-            def isSnapshot = "${env.VERSION}"?.contains("SNAPSHOT") ?: "true" // Asume snapshot si no está definida la variable
-            def repoUrl = isSnapshot ? "http://172.23.0.3:8081/repository/maven-snapshots/" : "http://172.23.0.3:8081/repository/maven-releases/"
-
-            myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
-                try {
-                    sh """
-                        mvn deploy -s /usr/share/maven/ref/settings-docker.xml \
-                            -DaltDeploymentRepository=nexus::default::${repoUrl} -X
-                    """
-                } catch (Exception e) {
-                    error("El despliegue falló. Verifica la conectividad y las credenciales: ${e.message}")
-                }
-            }
+stage('Desplegar en Nexus') {
+    withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+        def repoUrl = "http://nexus:8081/repository/test-repo/"
+        
+        myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
+            sh """
+                mvn deploy -DaltDeploymentRepository=nexus::default::${repoUrl} \
+                -Dnexus.username=${NEXUS_USER} -Dnexus.password=${NEXUS_PASS}
+            """
         }
     }
+}
 }

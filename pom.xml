@@ -101,14 +101,15 @@
     </build>
 <distributionManagement>
     <repository>
-        <id>maven-releases</id>
-        <url>http://172.23.0.3:8081/repository/maven-releases/</url>
+        <id>nexus-permissive</id>
+        <url>http://nexus:8081/repository/test-repo/</url>
     </repository>
     <snapshotRepository>
-        <id>maven-snapshots</id>
-        <url>http://172.23.0.3:8081/repository/maven-snapshots/</url>
+        <id>nexus-permissive-snapshots</id>
+        <url>http://nexus:8081/repository/test-repo/</url>
     </snapshotRepository>
 </distributionManagement>
+
 <configuration>
     <httpConfiguration>
         <all>
