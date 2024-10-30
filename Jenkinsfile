@@ -19,18 +19,32 @@ node {
         archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
     }
 
-stage('Desplegar en Nexus') {
-    withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-        def isSnapshot = "${env.VERSION}".contains("SNAPSHOT")
-        def repoUrl = isSnapshot ? "http://172.23.0.3:8081/repository/mvn-snapshots/" : "http://172.23.0.3:8081/repository/mvn-releases/"
+    stage('Verificar conexión con Nexus') {
+        withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+            // Realiza una solicitud CURL a Nexus para verificar la conectividad
+            def nexusUrl = "http://172.23.0.3:8081/service/rest/v1/status"
+            def curlCommand = "curl -u ${NEXUS_USER}:${NEXUS_PASS} -s -o /dev/null -w '%{http_code}' ${nexusUrl}"
+            def responseCode = sh(script: curlCommand, returnStdout: true).trim()
 
-        myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
-            sh """
-                mvn deploy -DaltDeploymentRepository=nexus::default::${repoUrl}
-            """
+            // Verifica si el código de respuesta es 200
+            if (responseCode != '200') {
+                error("No se pudo establecer conexión con Nexus en ${nexusUrl}. Código de respuesta: ${responseCode}")
+            } else {
+                echo "Conexión con Nexus establecida exitosamente."
+            }
         }
     }
-}
 
+    stage('Desplegar en Nexus') {
+        withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+            def isSnapshot = "${env.VERSION}".contains("SNAPSHOT")
+            def repoUrl = isSnapshot ? "http://172.23.0.3:8081/repository/mvn-snapshots/" : "http://172.23.0.3:8081/repository/mvn-releases/"
 
+            myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
+                sh """
+                    mvn deploy -DaltDeploymentRepository=nexus::default::${repoUrl}
+                """
+            }
+        }
+    }
 }
