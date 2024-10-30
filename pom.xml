@@ -101,12 +101,12 @@
     </build>
 <distributionManagement>
     <repository>
-        <id>nexus-permissive</id>
-        <url>http://172.23.0.3:8081/repository/test-repo/</url>
+        <id>nexus-releases</id>\
+        <url>http://172.23.0.3:8081/repository/mvn-releases/</url>\
     </repository>
     <snapshotRepository>
-        <id>nexus-permissive-snapshots</id>
-        <url>http://172.23.0.3:8081/repository/test-repo/</url>
+        <id>nexus-snapshots</id>\
+        <url>http://172.23.0.3:8081/repository/mvn-snapshots/</url>\
     </snapshotRepository>
 </distributionManagement>
 
