@@ -38,7 +38,7 @@ node {
 
 stage('Desplegar en Nexus') {
     withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-        def repoUrl = "http://nexus:8081/repository/test-repo/"
+        def repoUrl = "http://172.23.0.3:8081/repository/test-repo/"
         
         myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
             sh """

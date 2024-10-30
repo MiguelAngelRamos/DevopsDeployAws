@@ -102,11 +102,11 @@
 <distributionManagement>
     <repository>
         <id>nexus-permissive</id>
-        <url>http://nexus:8081/repository/test-repo/</url>
+        <url>http://172.23.0.3:8081/repository/test-repo/</url>
     </repository>
     <snapshotRepository>
         <id>nexus-permissive-snapshots</id>
-        <url>http://nexus:8081/repository/test-repo/</url>
+        <url>http://172.23.0.3:8081/repository/test-repo/</url>
     </snapshotRepository>
 </distributionManagement>
 
