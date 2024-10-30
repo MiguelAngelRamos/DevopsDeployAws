@@ -109,6 +109,14 @@
         <url>http://172.23.0.3:8081/repository/maven-snapshots/</url>
     </snapshotRepository>
 </distributionManagement>
+<configuration>
+    <httpConfiguration>
+        <all>
+            <connectionTimeout>60000</connectionTimeout>
+            <readTimeout>120000</readTimeout>
+        </all>
+    </httpConfiguration>
+</configuration>
 
 
 
