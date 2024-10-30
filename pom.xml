@@ -102,12 +102,13 @@
     <distributionManagement>
         <repository>
             <id>nexus-releases</id>
-            <url>http://nexus:8081/repository/mvn-releases/</url>
+            <url>http://172.23.0.3:8081/repository/mvn-releases/</url>
         </repository>
         <snapshotRepository>
             <id>nexus-snapshots</id>
-            <url>http://nexus:8081/repository/mvn-snapshots/</url>
+            <url>http://172.23.0.3:8081/repository/mvn-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
+
 
 </project>
