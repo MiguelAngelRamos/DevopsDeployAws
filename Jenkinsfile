@@ -20,14 +20,13 @@ node {
     }
 
     stage('Desplegar en Nexus') {
-        // Usar las credenciales de Nexus para el despliegue
         withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
             def isSnapshot = "${env.VERSION}".contains("SNAPSHOT")
             def repoUrl = isSnapshot ? "http://nexus:8081/repository/mvn-snapshots/" : "http://nexus:8081/repository/mvn-releases/"
 
             myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
                 sh """
-                    mvn deploy -DaltDeploymentRepository=nexus::default:${repoUrl} \
+                    mvn deploy -DaltDeploymentRepository=nexus::default::${repoUrl} \
                     -Dnexus.username=${NEXUS_USER} -Dnexus.password=${NEXUS_PASS}
                 """
             }
