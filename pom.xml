@@ -99,5 +99,15 @@
             </plugin>
         </plugins>
     </build>
+    <distributionManagement>
+        <repository>
+            <id>nexus-releases</id>
+            <url>http://nexus:8081/repository/mvn-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus-snapshots</id>
+            <url>http://nexus:8081/repository/mvn-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>
