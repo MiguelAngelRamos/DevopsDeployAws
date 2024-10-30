@@ -19,18 +19,18 @@ node {
         archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
     }
 
-stage('Desplegar en Nexus') {
-    withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-        def isSnapshot = "${env.VERSION}".contains("SNAPSHOT")
-        def repoUrl = isSnapshot ? "http://172.23.0.3:8081/repository/mvn-snapshots/" : "http://172.23.0.3:8081/repository/mvn-releases/"
+    stage('Desplegar en Nexus') {
+        withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIAL', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+            def isSnapshot = "${env.VERSION}".contains("SNAPSHOT")
+            def repoUrl = isSnapshot ? "http://nexus:8081/repository/mvn-snapshots/" : "http://nexus:8081/repository/mvn-releases/"
 
-        myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
-            sh """
-                mvn deploy -DaltDeploymentRepository=nexus::default::${repoUrl}
-            """
+            myMavenContainer.inside("-v ${env.HOME}/.m2:/root/.m2") {
+                sh """
+                    mvn deploy -DaltDeploymentRepository=nexus::default::${repoUrl} \
+                    -Dnexus.username=${NEXUS_USER} -Dnexus.password=${NEXUS_PASS}
+                """
+            }
         }
     }
-}
-
 
 }
